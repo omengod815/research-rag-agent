@@ -1,10 +1,10 @@
 from pathlib import Path
-import fitz  # PyMuPDF
+import pymupdf  # PyMuPDF
 
 
 def extract_pdf_pages(pdf_path: Path) -> list[dict]:
     pages: list[dict] = []
-    with fitz.open(pdf_path) as doc:
+    with pymupdf.open(pdf_path) as doc:
         for index, page in enumerate(doc):
             text = page.get_text("text").strip()
             if text:

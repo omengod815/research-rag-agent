@@ -1,7 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from app.services.pdf_service import extract_pdf_pages
+from app.rag.indexer import index_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 UPLOAD_DIR = Path("data/uploads")
@@ -12,14 +12,13 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF is supported")
 
-    saved_name = f"{uuid4().hex}.pdf"
-    saved_path = UPLOAD_DIR / saved_name
+    saved_path = UPLOAD_DIR / f"{uuid4().hex}.pdf"
     saved_path.write_bytes(await file.read())
 
-    pages = extract_pdf_pages(saved_path)
+    indexed = await index_document(saved_path, source_name=file.filename)
     return {
         "document_id": saved_path.stem,
         "filename": file.filename,
-        "page_count_with_text": len(pages),
-        "preview": pages[:2],
+        **indexed,
+        "indexed": True,
     }
