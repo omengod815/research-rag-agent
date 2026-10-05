@@ -1,8 +1,10 @@
 from app.rag.retriever import retrieve
 from app.services.llm_service import chat_once
+from app.rag.reranker import keyword_overlap_rerank
 
 async def rag_answer(question: str, top_k: int = 5) -> dict:
-    hits = await retrieve(question, top_k=top_k)
+    hits = await retrieve(question,top_k=10,)
+    hits = keyword_overlap_rerank(question,hits,)[:5]
     context_parts = []
     for i, h in enumerate(hits, start=1):
         context_parts.append(
