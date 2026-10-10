@@ -14,12 +14,24 @@ def analyze_regression_csv_impl(filename: str) -> str:
         raise FileNotFoundError("CSV not found")
 
     df = pd.read_csv(path)
-    required = {"true", "prediction"}
-    if not required.issubset(df.columns):
-        raise ValueError("CSV must contain true and prediction columns")
+    
+    # 兼容多种常见的真实值和预测值列名
+    true_candidates = ["true", "y_true", "actual", "label", "target"]
+    pred_candidates = ["prediction", "y_pred", "pred", "predicted", "forecast"]
+    
+    true_col = next((col for col in true_candidates if col in df.columns), None)
+    pred_col = next((col for col in pred_candidates if col in df.columns), None)
+    
+    if not true_col or not pred_col:
+        raise ValueError(
+            f"CSV must contain true and prediction columns. "
+            f"Accepted true: {true_candidates}, Accepted pred: {pred_candidates}. "
+            f"Found: {list(df.columns)}"
+        )
 
-    y_true = df["true"]
-    y_pred = df["prediction"]
+    y_true = df[true_col]
+    y_pred = df[pred_col]
+    
     mae = mean_absolute_error(y_true, y_pred)
     rmse = mean_squared_error(y_true, y_pred) ** 0.5
     r2 = r2_score(y_true, y_pred)
