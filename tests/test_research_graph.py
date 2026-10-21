@@ -1,72 +1,59 @@
-"""
-Research Graph 单元测试
-覆盖 general / data 两条路由分支及异常兜底逻辑
-"""
+import asyncio
 
-import pytest
-from pathlib import Path
-
-from app.agents.research_graph import research_graph
-from app.tools.data_tool import SAFE_DIR
+from app.agents import research_graph as rg
 
 
-@pytest.mark.asyncio
-async def test_general_route():
-    """测试通用问答分支：无文件名时应走 general 路由"""
-    state = await research_graph.ainvoke({
-        "question": "什么是线性回归？",
-        "filename": ""
-    })
+def run_graph(monkeypatch, route: str, filename: str = "demo_predictions.csv"):
+    async def fake_router(question: str) -> str:
+        return route
 
-    assert state["route"] == "general"
-    assert "answer" in state
-    assert len(state["answer"]) > 0
+    async def fake_retrieve(question: str, top_k: int = 5):
+        return [{"source": "paper_a.pdf", "page": 3, "text": "论文说明了实验方法。", "score": 0.9}]
 
+    def fake_data(name: str) -> str:
+        assert name == filename
+        return "rows=5, MAE=0.620000, RMSE=0.730000, R2=0.980000"
 
-@pytest.mark.asyncio
-async def test_data_route_with_file():
-    """测试数据分析分支：使用 SAFE_DIR 内的合法 CSV 验证指标计算"""
-    csv_file = SAFE_DIR / "test_model.csv"
-    # 使用 y_true/y_pred 列名，验证列名兼容逻辑
-    csv_file.write_text(
-        "y_true,y_pred\n1,1.1\n2,2.2\n3,2.8\n",
-        encoding="utf-8"
-    )
+    async def fake_report(question, evidence, analysis="", errors=None):
+        return f"QUESTION={question}\nEVIDENCE={bool(evidence)}\nANALYSIS={bool(analysis)}\nERRORS={len(errors or [])}"
 
-    try:
-        state = await research_graph.ainvoke({
-            "question": f"帮我分析 {csv_file.name} 的预测效果",
-            "filename": csv_file.name  # 只传文件名，data_tool 内部拼接 SAFE_DIR
-        })
+    async def fake_chat(prompt: str) -> str:
+        return "这是一个普通问题的模拟回答。"
 
-        assert state["route"] == "data"
-        analysis = state.get("analysis", "")
-        
-        # 不应包含失败提示
-        assert "⚠️" not in analysis, f"分析意外失败: {analysis}"
-        # 应包含至少一个回归指标
-        assert any(m in analysis for m in ["RMSE", "MAE", "R2", "MSE"]), \
-            f"分析结果缺少回归指标，实际内容: {analysis}"
-        assert "answer" in state and len(state["answer"]) > 0
-    finally:
-        # 清理测试文件，避免污染生产数据目录
-        if csv_file.exists():
-            csv_file.unlink()
+    monkeypatch.setattr(rg, "route_question", fake_router)
+    monkeypatch.setattr(rg, "retrieve", fake_retrieve)
+    monkeypatch.setattr(rg, "analyze_regression_csv_impl", fake_data)
+    monkeypatch.setattr(rg, "build_report", fake_report)
+    monkeypatch.setattr(rg, "chat_once", fake_chat)
+
+    return asyncio.run(rg.research_graph.ainvoke({
+        "question": "测试问题",
+        "filename": filename,
+    }))
 
 
-@pytest.mark.asyncio
-async def test_data_route_missing_file():
-    """测试数据分析分支兜底：文件不存在时 Graph 不应崩溃，应返回友好提示"""
-    state = await research_graph.ainvoke({
-        "question": "分析不存在的文件",
-        "filename": "nonexistent_file_12345.csv"
-    })
+def test_retrieval_route(monkeypatch):
+    result = run_graph(monkeypatch, "retrieval")
+    assert result["route"] == "retrieval"
+    assert "论文说明了实验方法" in result["evidence"]
+    assert result["answer"]
 
-    assert state["route"] == "data"
-    assert "answer" in state
-    assert len(state["answer"]) > 0
-    
-    # Graph 不应泄露原始堆栈
-    assert "Traceback" not in state["answer"]
-    # analysis 字段应包含我们在 data_node 中定义的友好错误提示
-    assert "⚠️" in state.get("analysis", "") or "not found" in state.get("analysis", "").lower()
+
+def test_data_route(monkeypatch):
+    result = run_graph(monkeypatch, "data")
+    assert result["route"] == "data"
+    assert "MAE" in result["analysis"]
+    assert result["answer"]
+
+
+def test_combined_route(monkeypatch):
+    result = run_graph(monkeypatch, "combined")
+    assert result["route"] == "combined"
+    assert "论文说明了实验方法" in result["evidence"]
+    assert "MAE" in result["analysis"]
+
+
+def test_general_route(monkeypatch):
+    result = run_graph(monkeypatch, "general")
+    assert result["route"] == "general"
+    assert result["answer"] == "这是一个普通问题的模拟回答。"

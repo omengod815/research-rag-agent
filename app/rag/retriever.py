@@ -6,10 +6,10 @@ async def retrieve(query: str, top_k: int = 5) -> list[dict]:
     points = qdrant_query(embedding, top_k)
     return [
         {
-            "score": float(p.score),
-            "text": (p.payload or {}).get("text", ""),
-            "source": (p.payload or {}).get("source", ""),
-            "page": (p.payload or {}).get("page"),
+            "score": p.get("score", 0.0),
+            "text": p.get("text", ""),
+            "source": p.get("source", ""),
+            "page": p.get("page"),
         }
         for p in points
     ]

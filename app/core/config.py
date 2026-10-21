@@ -5,6 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    qdrant_url: str = ""
+    enable_cross_encoder: bool = False
     qwen_api_key: str
     qwen_base_url: str = Field(
         validation_alias=AliasChoices("QWEN_BASE_URL", "LLM_BASE_URL")
@@ -32,3 +34,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
