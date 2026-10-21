@@ -1,67 +1,73 @@
+from hashlib import sha256
 from pathlib import Path
-from uuid import uuid4
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 
 from app.rag.indexer import index_document
-from app.rag.vector_store import (
-    delete_document_points,
-    find_document_by_fingerprint,
-)
-from app.services.pdf_service import calculate_file_fingerprint
+from app.rag.vector_store import delete_document_points, find_document_by_fingerprint
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MiB
 
 
 @router.post("/upload")
 async def upload_pdf(
     file: UploadFile = File(...),
-    user_id: str = Query(default="local-demo"),
+    user_id: str = Form(default="local-demo"),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF is supported")
+        raise HTTPException(status_code=400, detail="只支持 PDF 文件。")
 
-    file_bytes = await file.read()
-    if len(file_bytes) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="File exceeds 25 MiB limit")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="上传文件为空。")
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="PDF 超过 25 MiB 限制。")
 
-    # 1. 计算 SHA-256 指纹并查重
-    fingerprint = calculate_file_fingerprint(file_bytes)
-    existing = find_document_by_fingerprint(fingerprint, user_id=user_id)
-    if existing:
+    fingerprint = sha256(content).hexdigest()
+    existing_id = find_document_by_fingerprint(fingerprint, user_id=user_id)
+    if existing_id:
         return {
             "duplicate": True,
-            "document_id": existing["document_id"],
-            "filename": existing.get("source", file.filename),
-            "message": "相同文档已入库，跳过重复索引",
+            "indexed": False,
+            "document_id": existing_id,
+            "fingerprint": fingerprint,
+            "message": "该用户已经索引过内容相同的 PDF，跳过重复 Embedding。",
         }
 
-    # 2. 未重复才落盘并索引
-    document_id = uuid4().hex
-    saved_path = UPLOAD_DIR / f"{document_id}.pdf"
-    saved_path.write_bytes(file_bytes)
+    document_id = fingerprint[:24]
+    saved_path = UPLOAD_DIR / f"{fingerprint}.pdf"
+    saved_path.write_bytes(content)
 
-    result = await index_document(
-        saved_path,
-        source_name=file.filename,
-        document_id=document_id,
-        fingerprint=fingerprint,
-        user_id=user_id,
-    )
-    return {"duplicate": False, **result}
+    try:
+        result = await index_document(
+            pdf_path=saved_path,
+            source_name=Path(file.filename).name,
+            document_id=document_id,
+            fingerprint=fingerprint,
+            user_id=user_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"PDF 索引失败: {type(exc).__name__}: {exc}") from exc
+
+    return {
+        "duplicate": False,
+        "indexed": True,
+        "filename": Path(file.filename).name,
+        "document_id": document_id,
+        "fingerprint": fingerprint,
+        **result,
+    }
 
 
 @router.delete("/{document_id}")
-async def remove_document(
+async def delete_document(
     document_id: str,
-    user_id: str = Query(default="local-demo"),
+    user_id: str = Query(default="local-demo", min_length=1, max_length=100),
 ):
-    deleted = delete_document_points(document_id, user_id=user_id)
-    if deleted == 0:
-        raise HTTPException(status_code=404, detail="Document not found or already deleted")
-    return {"document_id": document_id, "deleted_chunks": deleted}
+    delete_document_points(document_id=document_id, user_id=user_id)
+    return {"deleted": True, "document_id": document_id, "user_id": user_id}
