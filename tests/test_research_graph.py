@@ -7,7 +7,7 @@ def run_graph(monkeypatch, route: str, filename: str = "demo_predictions.csv"):
     async def fake_router(question: str) -> str:
         return route
 
-    async def fake_retrieve(question: str, top_k: int = 5):
+    async def fake_retrieve(question: str, top_k: int = 5, user_id: str = "local-demo"):
         return [{"source": "paper_a.pdf", "page": 3, "text": "论文说明了实验方法。", "score": 0.9}]
 
     def fake_data(name: str) -> str:

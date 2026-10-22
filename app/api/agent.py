@@ -37,7 +37,7 @@ def _public_result(result: dict, thread_id: str) -> dict:
 async def run_agent(req: AgentRequest):
     try:
         result = await invoke_with_checkpoint(
-            {"question": req.question, "filename": req.filename},
+            {"question": req.question, "filename": req.filename, "user_id": req.user_id},
             thread_id=req.thread_id,
         )
         return _public_result(result, req.thread_id)
@@ -61,7 +61,7 @@ async def stream_agent(req: AgentRequest):
     async def event_generator():
         try:
             async for update in stream_with_checkpoint(
-                {"question": req.question, "filename": req.filename},
+                {"question": req.question, "filename": req.filename, "user_id": req.user_id},
                 thread_id=req.thread_id,
             ):
                 data = json.dumps(jsonable_encoder(update), ensure_ascii=False)

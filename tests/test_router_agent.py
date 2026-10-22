@@ -34,6 +34,7 @@ ROUTING_TEST_CASES = [
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 @pytest.mark.parametrize("question,expected_route", ROUTING_TEST_CASES)
 async def test_router_classification(question: str, expected_route: str):
     """参数化测试：验证 20 个问题的路由分类是否符合预期"""
@@ -46,6 +47,7 @@ async def test_router_classification(question: str, expected_route: str):
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_router_fallback_to_general():
     """验证无法识别的问题应兜底返回 general"""
     # 使用一个模糊/无意义的问题测试白名单兜底逻辑
@@ -54,6 +56,7 @@ async def test_router_fallback_to_general():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_router_returns_valid_literal():
     """验证返回值始终是合法的 Literal 类型"""
     valid_routes = {"retrieval", "data", "report", "general"}

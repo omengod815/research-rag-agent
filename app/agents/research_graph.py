@@ -21,6 +21,7 @@ class ResearchState(TypedDict, total=False):
     question: str
     filename: str
     thread_id: str
+    user_id: str
     route: str
     evidence: str
     sources: list[dict]
@@ -44,7 +45,11 @@ async def router_node(state: ResearchState) -> dict:
 
 async def retrieval_node(state: ResearchState) -> dict:
     try:
-        hits = await retrieve(state["question"], top_k=5)
+        hits = await retrieve(
+            state["question"],
+            top_k=5,
+            user_id=state.get("user_id", "local-demo"),
+        )
         parts = [
             f"[{i}] source={h.get('source', 'unknown')} page={h.get('page', 'unknown')}\n{h.get('text', '')}"
             for i, h in enumerate(hits, start=1)
