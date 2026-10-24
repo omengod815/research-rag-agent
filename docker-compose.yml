@@ -1,0 +1,44 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  api:
+    build: .
+    env_file:
+      - .env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - qdrant
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  ui:
+    build: .
+    command: ["python", "ui/gradio_app.py"]
+    environment:
+      API_BASE: http://api:8000
+    ports:
+      - "7860:7860"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  qdrant_storage:
