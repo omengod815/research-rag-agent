@@ -1,8 +1,11 @@
 import asyncio
 
+import pytest
+
 from app.services.embedding_service import embed_texts
 
 
+@pytest.mark.integration
 def test_embedding_api():
     vectors = asyncio.run(
         embed_texts(["深度学习温度预测"])

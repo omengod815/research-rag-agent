@@ -1,8 +1,11 @@
 import asyncio
 
+import pytest
+
 from app.rag.retriever import retrieve
 
 
+@pytest.mark.integration
 def test_retriever():
     query = "TiAl合金等温轧制过程中影响出口厚度的主要因素是什么？"
 

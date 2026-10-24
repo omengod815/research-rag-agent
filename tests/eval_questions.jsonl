@@ -1,4 +1,8 @@
-{"question":"论文研究的主要对象是什么？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":实际页码}
-{"question":"论文采用了哪些预测模型？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":实际页码}
-{"question":"影响出口厚度的主要因素有哪些？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":实际页码}
-{"question":"论文使用了哪些评价指标？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":实际页码}
+{"question": "TiAl合金在热加工过程中容易出现哪些缺陷？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":15}
+{"question": "等温轧制技术的核心优势是什么？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":15}
+{"question": "轧辊电磁温控采用了什么加热方式？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":29}
+{"question": "影响终轧温度的主要工艺参数有哪些？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":44}
+{"question": "出口厚度受哪些关键工艺参数影响？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":51}
+{"question": "论文建立了哪两种神经网络预测模型？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":58}
+{"question": "机器学习模型预测了哪些轧制关键参数？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":59}
+{"question": "论文的主要研究结论是什么？","expected_source":"2026.04.02-TiAl 合金等温轧制过程数值模拟与关键技术研究.pdf","expected_page":130}
